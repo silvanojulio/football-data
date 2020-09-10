@@ -22,9 +22,18 @@ namespace FootballDataApi.Controllers
 
         [HttpGet]
         [Route("import-leage/{leageCode}")]
-        public void Get(string leageCode)
+        public async Task<IActionResult> Get(string leageCode)
         {
-            dataImportManager.ImportLeage(leageCode);
+            try
+            {
+                await dataImportManager.ImportLeage(leageCode);
+
+                return Ok();
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest();
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using FootballDataRepository.DbModel;
 using FootballDataManagers;
 using FootballDataCommon.Contracts.Managers;
+using AutoMapper;
 
 namespace FootballDataApi
 {
@@ -28,10 +29,12 @@ namespace FootballDataApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<FootballDataBaseContext>(options => 
-            //options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
-            options.UseSqlServer("Server=localhost\\sqlexpress;Database=FootballDataDb;Trusted_Connection=True;MultipleActiveResultSets=true"));
+            //services.AddDbContext<FootballDataBaseContext>(c => c.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<FootballDataBaseContext>(c =>
+                c.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb"));
+            //options.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb"));
 
+            services.AddAutoMapper(typeof(Startup).Assembly);
             services.AddScoped<IDataImportManager, DataImportManager>();
 
             services.AddControllers();
