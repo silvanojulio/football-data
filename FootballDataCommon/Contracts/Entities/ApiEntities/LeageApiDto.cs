@@ -6,11 +6,11 @@ namespace FootballDataCommon.Contracts.Entities.ApiEntities
     public class LeageTeamsApiResponse
     {
         public int count {get; set;}
-        public LeageDto competition {get; set;}
+        public LeageApiDto competition {get; set;}
         public ICollection<TeamApiDto> teams { get; set; }
     }
 
-    public class TeamDetailsApiResponse
+    public class TeamDetailsApiResponse:BaseEntityDto
     {
         public ICollection<PlayerApiDto> squad { get; set; }
     }
@@ -22,7 +22,7 @@ namespace FootballDataCommon.Contracts.Entities.ApiEntities
         public string nationality {get; set;}
         public DateTime dateOfBirth {get; set;}
     }
-    public class LeageDto:BaseEntityDto
+    public class LeageApiDto:BaseEntityDto
     {
         public string code {get; set;}
         public BaseEntityDto area {get; set;}

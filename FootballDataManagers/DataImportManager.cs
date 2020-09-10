@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using FootballDataCommon.Contracts.Entities.ApiEntities;
 using FootballDataCommon.Contracts.Managers;
 using FootballDataCommon.Utils;
@@ -12,10 +13,12 @@ namespace FootballDataManagers
     {
         const string baseUrl = "https://api.football-data.org/v2";
         private readonly FootballDataBaseContext dbContext;
+        private readonly IMapper mapper;
 
-        public DataImportManager(FootballDataBaseContext context)
+        public DataImportManager(FootballDataBaseContext context, IMapper mapper)
         {
             dbContext = context;
+            this.mapper = mapper;
         }
         public async Task ImportLeage(string leageCode)
         {
@@ -36,8 +39,35 @@ namespace FootballDataManagers
 
             Task.WaitAll(playersRequests);
 
-            var playersData = playersRequests.Select(x=> x.Result);
+            var playersData = playersRequests
+                .Select(x=> x.Result)
+                .Where(x=> x != null).ToList();
 
+            var competition = mapper.Map<Competition>(leageAndTeamsData.competition);
+
+            dbContext.Competitions.Add(competition);
+
+            foreach (var apiTeam in leageAndTeamsData.teams)
+            {
+                var team =  mapper.Map<Team>(apiTeam);
+                team.Competition = competition;
+                dbContext.Teams.Add(team);
+
+                var teamPlayersData = playersData.Find(x=> x.id == apiTeam.id);
+
+                if(teamPlayersData != null){
+                    dbContext.Players.AddRange(
+                        teamPlayersData.squad
+                        .Select( p=>{
+                            var player = mapper.Map<Player>(p);
+                            player.Team = team;
+                            return player;
+                        }).ToList()
+                    );
+                }
+            }
+
+            dbContext.SaveChanges();
         }
     }
 }
