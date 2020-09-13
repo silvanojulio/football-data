@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -14,43 +15,53 @@ namespace FootballDataManagers
     {
         const string baseUrl = "https://api.football-data.org/v2";
         private readonly FootballDataBaseContext dbContext;
+        private readonly IApiClient apiClient;
         private readonly IMapper mapper;
 
-        public DataImportManager(FootballDataBaseContext context, IMapper mapper)
+        public DataImportManager(FootballDataBaseContext context, IMapper mapper, IApiClient apiClient)
         {
             dbContext = context;
             this.mapper = mapper;
+            this.apiClient = apiClient;
         }
-        public async Task ImportLeage(string leageCode)
-        {
-            var existingCompetition = dbContext.Competitions.FirstOrDefault(c=>c.Code == leageCode);
+
+        private async Task<LeageTeamsApiResponse> GetCompetition(string leagueCode){
+            var existingCompetition = dbContext.Competitions.FirstOrDefault(c=>c.Code == leagueCode);
 
             if(existingCompetition!=null)
-            {
-                throw new AlreadyImportedLeageException(leageCode);
-            }
+                throw new AlreadyImportedLeageException(leagueCode);
 
             LeageTeamsApiResponse leageAndTeamsData = null;
 
             try{
-                leageAndTeamsData = await ApiClient.get<LeageTeamsApiResponse>(string.Format("{0}/competitions/{1}/teams", baseUrl, leageCode));
+                leageAndTeamsData = await apiClient.get<LeageTeamsApiResponse>(string.Format("{0}/competitions/{1}/teams", baseUrl, leagueCode));
             }
-            catch(Exception ex)
+            catch(ApiErrorException ex){
+                throw new List<int>{400, 404}
+                .Contains(ex.errorCode)?
+                    new ItemNotFoundException(ex):
+                    new Exception(ex.message);
+            }
+            catch(Exception)
             {
-                throw new ItemNotFoundException(ex);
+                throw;
             }
 
+            return leageAndTeamsData;
+        }
+
+        private List<TeamDetailsApiResponse> getPlayers(LeageTeamsApiResponse leageAndTeamsData){
             var playersRequests = leageAndTeamsData.teams
                 .Select(async x=>{
                     try
                     {
-                        var data = await ApiClient.get<TeamDetailsApiResponse>(string.Format("{0}/teams/{1}", baseUrl, x.id));
+                        var data = await apiClient.get<TeamDetailsApiResponse>(string.Format("{0}/teams/{1}", baseUrl, x.id));
                         return data;
                     }
                     catch (System.Exception ex)
                     {
-                        //It is because it is not possible to receive more than 10 success response in 1 minute
-                        return null; 
+                        //It is because it is not possible to receive more than 10 success responses in 1 minute
+                        return null;
                     }
                 }).ToArray();
 
@@ -60,33 +71,48 @@ namespace FootballDataManagers
                 .Select(x=> x.Result)
                 .Where(x=> x != null).ToList();
 
+            return playersData;
+        }
+        public async Task ImportLeage(string leagueCode)
+        {
+            var leageAndTeamsData = await GetCompetition(leagueCode);
+            var playersData =  getPlayers(leageAndTeamsData);
+
             var competition = mapper.Map<Competition>(leageAndTeamsData.competition);
 
             dbContext.Competitions.Add(competition);
+            competition.Teams = new List<TeamCompetition>();
+
+            var teamsExternalIds = leageAndTeamsData.teams.Select(x=>x.id).ToList();
+            var existingTeams = dbContext.Teams.Where(x=> teamsExternalIds.Contains(x.ExternalId)).ToList();
 
             foreach (var apiTeam in leageAndTeamsData.teams)
             {
-                var team =  mapper.Map<Team>(apiTeam);
-                team.Competition = competition;
+                var existingTeam = existingTeams.FirstOrDefault(x=> x.ExternalId == apiTeam.id);
 
-                var teamPlayersData = playersData.Find(x=> x.id == apiTeam.id);
+                if(existingTeam!=null){
+                    competition.Teams.Add(new TeamCompetition{
+                        Team = existingTeam,
+                        Competition = competition
+                    });
+                    continue;
+                }
+
+                var team = mapper.Map<Team>(apiTeam);
+                competition.Teams.Add(new TeamCompetition{
+                    Team = team,
+                    Competition = competition
+                });
+
+                var teamPlayersData = playersData.FirstOrDefault(x=> x.id == apiTeam.id);
 
                 if(teamPlayersData != null){
 
-                    var players =  teamPlayersData.squad
+                    team.Players =  teamPlayersData.squad
                         .Select( p=>{
                             var player = mapper.Map<Player>(p);
                             return player;
                         }).ToList();
-
-                    foreach (var p in players)
-                    {
-                        if(p.Id == 46){
-                            var a = 1;
-                            a++;
-                        }
-                    }
-                    team.Players = players;
                 }
 
                 dbContext.Teams.Add(team);

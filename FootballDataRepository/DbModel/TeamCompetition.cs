@@ -4,12 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FootballDataRepository.DbModel
 {
-    public class PlayerTeam
+    public class TeamCompetition
     {
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Key, Column(Order = 0)]
         public int Id{get;  set;}
-        public Player Player { get; set; }
+        public Competition Competition { get; set; }
         public Team Team { get; set; }
     }
 }

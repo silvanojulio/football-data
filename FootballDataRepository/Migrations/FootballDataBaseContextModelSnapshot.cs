@@ -91,9 +91,6 @@ namespace FootballDataRepository.Migrations
                     b.Property<string>("Code")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("CompetitionId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
@@ -111,9 +108,29 @@ namespace FootballDataRepository.Migrations
 
                     b.HasKey("Id");
 
+                    b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("FootballDataRepository.DbModel.TeamCompetition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<int?>("CompetitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TeamId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
                     b.HasIndex("CompetitionId");
 
-                    b.ToTable("Teams");
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("TeamCompetition");
                 });
 
             modelBuilder.Entity("FootballDataRepository.DbModel.Player", b =>
@@ -123,11 +140,15 @@ namespace FootballDataRepository.Migrations
                         .HasForeignKey("TeamId");
                 });
 
-            modelBuilder.Entity("FootballDataRepository.DbModel.Team", b =>
+            modelBuilder.Entity("FootballDataRepository.DbModel.TeamCompetition", b =>
                 {
                     b.HasOne("FootballDataRepository.DbModel.Competition", "Competition")
                         .WithMany("Teams")
                         .HasForeignKey("CompetitionId");
+
+                    b.HasOne("FootballDataRepository.DbModel.Team", "Team")
+                        .WithMany("Competitions")
+                        .HasForeignKey("TeamId");
                 });
 #pragma warning restore 612, 618
         }

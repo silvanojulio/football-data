@@ -11,28 +11,26 @@ using Microsoft.Extensions.Logging;
 namespace FootballDataApi.Controllers
 {
     [ApiController]
-    public class LeageController : ControllerBase
+    public class TotalPlayersController : ControllerBase
     {
         private readonly ILogger<LeageController> logger;
-        private readonly IDataImportManager dataImportManager;
+        private readonly IPlayersManager playersManager;
 
-        public LeageController(ILogger<LeageController> logger, IDataImportManager dataImportManager)
+        public TotalPlayersController(ILogger<LeageController> logger, IPlayersManager playersManager)
         {
             this.logger = logger;
-            this.dataImportManager = dataImportManager;
+            this.playersManager = playersManager;
         }
 
         [HttpGet]
-        [Route("import-leage/{leageCode}")]
+        [Route("total-players/{leageCode}")]
         public async Task<IActionResult> Get(string leageCode)
         {
             try
             {
-                await dataImportManager.ImportLeage(leageCode);
-                return StatusCode(201, ResponseBuilder.GetApiSuccessResponse());
-            }
-            catch (AlreadyImportedLeageException ex){
-                return StatusCode(409, ResponseBuilder.GetErrorApiResponse(ex));
+                var playersCount = await playersManager.GetTotalPlayersByLeage(leageCode);
+
+                return StatusCode(200, ResponseBuilder.GetApiSuccessResponseWithData<int>(playersCount));
             }
             catch (ItemNotFoundException ex){
                 return StatusCode(404, ResponseBuilder.GetErrorApiResponse(ex));

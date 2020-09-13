@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -7,17 +6,42 @@ using System.Threading.Tasks;
 
 namespace FootballDataCommon.Utils
 {
-    public class ApiClient
+    public interface IApiClient
     {
-        public static async Task<T> get<T>(string url){
+        Task<T> get<T>(string url);
+    }
 
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Add("X-Auth-Token", "cef3de66b69242d88db42d1b0e0a5d8a");
+    public class ApiClient : IApiClient
+    {
+        private readonly IHttpClientFactory _clientFactory;
 
-            var streamTask = client.GetStreamAsync(url);
-            var data = await JsonSerializer.DeserializeAsync<T>(await streamTask);
-            return data;
+        public ApiClient(IHttpClientFactory clientFactory)
+        {
+            this._clientFactory = clientFactory;
         }
+
+        public async Task<T> get<T>(string url)
+        {
+
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("X-Auth-Token", "cef3de66b69242d88db42d1b0e0a5d8a");
+
+            var client = _clientFactory.CreateClient();
+
+            var response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                using var responseStream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<T>(responseStream);
+            }
+            else
+            {
+                using var responseStream = await response.Content.ReadAsStreamAsync();
+                var error = await JsonSerializer.DeserializeAsync<ApiErrorException>(responseStream);
+                throw error;
+            }
+        }
+
     }
 }

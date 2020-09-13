@@ -7,11 +7,13 @@ namespace FootballDataRepository.DbModel
         public FootballDataBaseContext(DbContextOptions<FootballDataBaseContext> options) : base(options)
         {
         }
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-            => options.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb");
+
+        // Code First workarround.
+        //protected override void OnConfiguring(DbContextOptionsBuilder options)
+        //    => options.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb");
         public DbSet<Competition> Competitions { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<Player> Players { get; set; }
-        //public DbSet<PlayerTeam> PlayersTeams { get; set; }
+
     }
 }

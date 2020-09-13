@@ -17,6 +17,6 @@ namespace FootballDataRepository.DbModel
         public string Email { get; set; }
         public ICollection<Player> Players { get; set; }
         //public ICollection<PlayerTeam> Players { get; set; }
-        public Competition Competition { get; set; }
+        public ICollection<TeamCompetition> Competitions { get; set; }
     }
 }

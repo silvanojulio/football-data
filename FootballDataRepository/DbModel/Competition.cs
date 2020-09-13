@@ -13,6 +13,6 @@ namespace FootballDataRepository.DbModel
         public string Code { get; set; }
         public string Name { get; set; }
         public string AreaName { get; set; }
-        public ICollection<Team> Teams { get; set; }
+        public ICollection<TeamCompetition> Teams { get; set; }
     }
 }
