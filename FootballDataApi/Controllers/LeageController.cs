@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using FootballDataCommon.Contracts.Api;
+using FootballDataCommon.Contracts.Exceptions;
 using FootballDataCommon.Contracts.Managers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -28,11 +30,17 @@ namespace FootballDataApi.Controllers
             {
                 await dataImportManager.ImportLeage(leageCode);
 
-                return Ok();
+                return StatusCode(201, ResponseBuilder.GetApiSuccessResponse());
+            }
+            catch (AlreadyImportedLeageException ex){
+                return StatusCode(409, ResponseBuilder.GetErrorApiResponse(ex));
+            }
+            catch (ItemNotFoundException ex){
+                return StatusCode(404, ResponseBuilder.GetErrorApiResponse(ex));
             }
             catch (System.Exception ex)
             {
-                return BadRequest();
+                return StatusCode(504, ResponseBuilder.GetErrorApiResponse(ex));
             }
         }
     }

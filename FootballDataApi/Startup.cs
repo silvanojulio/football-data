@@ -31,8 +31,9 @@ namespace FootballDataApi
         {
             //services.AddDbContext<FootballDataBaseContext>(c => c.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddDbContext<FootballDataBaseContext>(c =>
-                c.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb"));
-            //options.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb"));
+                c.UseSqlServer("Server=localhost\\sqlexpress;Integrated Security=true;Initial Catalog=FootballDataDb")
+                .EnableSensitiveDataLogging()
+            );
 
             services.AddAutoMapper(typeof(Startup).Assembly);
             services.AddScoped<IDataImportManager, DataImportManager>();

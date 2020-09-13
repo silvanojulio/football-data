@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using FootballDataCommon.Contracts.Entities.ApiEntities;
+using FootballDataCommon.Contracts.Exceptions;
 using FootballDataCommon.Contracts.Managers;
 using FootballDataCommon.Utils;
 using FootballDataRepository.DbModel;
@@ -22,7 +23,22 @@ namespace FootballDataManagers
         }
         public async Task ImportLeage(string leageCode)
         {
-            var leageAndTeamsData = await ApiClient.get<LeageTeamsApiResponse>(string.Format("{0}/competitions/{1}/teams", baseUrl, leageCode));
+            var existingCompetition = dbContext.Competitions.FirstOrDefault(c=>c.Code == leageCode);
+
+            if(existingCompetition!=null)
+            {
+                throw new AlreadyImportedLeageException(leageCode);
+            }
+
+            LeageTeamsApiResponse leageAndTeamsData = null;
+
+            try{
+                leageAndTeamsData = await ApiClient.get<LeageTeamsApiResponse>(string.Format("{0}/competitions/{1}/teams", baseUrl, leageCode));
+            }
+            catch(Exception ex)
+            {
+                throw new ItemNotFoundException(ex);
+            }
 
             var playersRequests = leageAndTeamsData.teams
                 .Select(async x=>{
@@ -33,7 +49,8 @@ namespace FootballDataManagers
                     }
                     catch (System.Exception ex)
                     {
-                        return null;
+                        //It is because it is not possible to receive more than 10 success response in 1 minute
+                        return null; 
                     }
                 }).ToArray();
 
@@ -51,20 +68,28 @@ namespace FootballDataManagers
             {
                 var team =  mapper.Map<Team>(apiTeam);
                 team.Competition = competition;
-                dbContext.Teams.Add(team);
 
                 var teamPlayersData = playersData.Find(x=> x.id == apiTeam.id);
 
                 if(teamPlayersData != null){
-                    dbContext.Players.AddRange(
-                        teamPlayersData.squad
+
+                    var players =  teamPlayersData.squad
                         .Select( p=>{
                             var player = mapper.Map<Player>(p);
-                            player.Team = team;
                             return player;
-                        }).ToList()
-                    );
+                        }).ToList();
+
+                    foreach (var p in players)
+                    {
+                        if(p.Id == 46){
+                            var a = 1;
+                            a++;
+                        }
+                    }
+                    team.Players = players;
                 }
+
+                dbContext.Teams.Add(team);
             }
 
             dbContext.SaveChanges();
